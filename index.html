@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>笔记本应用</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff007f, #00ffff);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            width: 400px;
+            text-align: center;
+        }
+        textarea {
+            width: 96%;
+            height: 150px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 16px;
+            resize: none;
+        }
+        button {
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #005bb5;
+        }
+        #progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            display: none;
+            margin-top: 10px;
+        }
+        #progress-bar > div {
+            height: 20px;
+            width: 0;
+            background-color: #4caf50;
+            border-radius: 5px;
+        }
+        #result {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 10px;
+            background: rgba(240, 240, 240, 0.9);
+            max-height: 150px; /* 限制最大高度 */
+            overflow-y: auto; /* 纵向滚动条 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>我的笔记本</h1>
+        <textarea id="note" placeholder="在这里输入你的内容..."></textarea>
+        <button id="submit">调用 GPT</button>
+        <div id="progress-bar"><div></div></div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const apiKey = 'sk-j29yjWFosoZKE247028dD1F7961c49F59b78E6767b889d58'; // 请替换为实际API密钥
+        const url = 'https://cors-anywhere.herokuapp.com/http://xiaoai.plus/v1/chat/completions';
+
+        function startProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            const progress = progressBar.querySelector('div');
+            progressBar.style.display = 'block';
+            progress.style.width = '0';
+
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                } else {
+                    width += 10;
+                    progress.style.width = width + '%';
+                }
+            }, 100);
+        }
+
+        function stopProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            const progress = progressBar.querySelector('div');
+            progress.style.width = '100%';
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+            }, 500);
+        }
+
+        async function fetchResponse() {
+            const inputWord = document.getElementById('note').value.trim();
+            if (!inputWord) {
+                alert("请输入内容！");
+                return;
+            }
+
+            startProgressBar();
+
+            const data = {
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: "请解释这个概念" },
+                    { role: "user", content: inputWord }
+                ]
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! 状态: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const reply = result.choices[0]?.message.content || '没有返回结果。';
+                document.getElementById('result').textContent = reply;
+
+            } catch (error) {
+                console.error('请求失败:', error);
+                document.getElementById('result').textContent = `请求失败: ${error.message}`;
+            } finally {
+                stopProgressBar();
+            }
+        }
+
+        document.getElementById('submit').addEventListener('click', fetchResponse);
+    </script>
+</body>
+</html>
